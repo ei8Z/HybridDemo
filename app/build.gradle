@@ -36,4 +36,5 @@ dependencies {
     compile 'com.squareup.okhttp3:logging-interceptor:3.4.1'
     //图片加载框架
     compile 'com.facebook.fresco:fresco:0.12.0'
+
 }

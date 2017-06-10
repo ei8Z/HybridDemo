@@ -1,5 +1,6 @@
 package com.yiyicai.tvtrendapp.android_hybriddemo.core;
 
+import android.app.Activity;
 import android.content.Context;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -21,6 +22,7 @@ import com.yiyicai.tvtrendapp.android_hybriddemo.utils.DownloadProgress;
 import com.yiyicai.tvtrendapp.android_hybriddemo.utils.FileUtil;
 
 import java.io.File;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -52,7 +54,8 @@ public class HybridAjaxService {
 
     public static void checkVersion(final Context context) {
         Log.i("===", "checkVersion: 进入");
-        onDownloadListener = (OnDownloadListener) context;
+        WeakReference<Activity> activityWeakReference = new WeakReference<Activity>((Activity) context);
+        onDownloadListener = (OnDownloadListener) activityWeakReference.get();
         mContext=context;
         NativeClient.getInstance().enqueue(new ApiRequestVersion(), new UICallback() {
             @Override
@@ -166,6 +169,10 @@ public class HybridAjaxService {
                     FileUtil.deleteFile(zip);//删除压缩包
                 }
             }
+        }
+        if(updateCount==0){
+            //说明没有需要更新的
+            onDownloadListener.onDownloadFailed();
         }
     }
 

@@ -5,9 +5,6 @@ import android.webkit.WebView;
 import com.yiyicai.tvtrendapp.android_hybriddemo.params.HybridParamAjax;
 import com.yiyicai.tvtrendapp.android_hybriddemo.utils.LogUtils;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import de.greenrobot.event.EventBus;
 
 
@@ -25,4 +22,5 @@ public class HybridActionAjaxGet extends HybridAction {
         EventBus.getDefault().post(hybridParam);
         //将结果回传给主线程
     }
+
 }

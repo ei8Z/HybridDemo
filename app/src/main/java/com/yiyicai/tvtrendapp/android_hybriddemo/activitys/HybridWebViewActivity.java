@@ -37,9 +37,26 @@ public class HybridWebViewActivity extends HybridBaseActivity {
     }
 
     @Override
+    protected void onPause() {
+        super.onPause();
+        if (mWebView!=null){
+            mWebView.pauseTimers();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mWebView!=null){
+            mWebView.resumeTimers();
+        }
+    }
+
+    @Override
     public void onBackPressed() {
         Log.e("vane", "webview cangoback= " + mWebView.canGoBack());
-        if (mWebView.canGoBack()) {
+
+        if ( mWebView.canGoBack()) {
             mWebView.goBack();
         } else {
             super.onBackPressed();

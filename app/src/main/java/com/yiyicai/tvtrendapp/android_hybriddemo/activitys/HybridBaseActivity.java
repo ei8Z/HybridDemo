@@ -8,11 +8,14 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -33,7 +36,9 @@ public class HybridBaseActivity extends AppCompatActivity implements OnDownloadL
     protected WebView mWebView;
     private TextView textView;
     public ProgressBar progressBar;
+    private SwipeRefreshLayout swipeRefreshLayout;
     protected HybridWebViewClient mWebViewClient;
+    private LinearLayout updateLayoutProgress;
     private String[] permissions = {"android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.READ_PHONE_STATE", "android.permission.WRITE_SETTINGS"};
     private static final int REQUEST_CODE = 0x11;
     @Override
@@ -41,8 +46,10 @@ public class HybridBaseActivity extends AppCompatActivity implements OnDownloadL
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mWebView = (WebView) findViewById(R.id.hybrid_webview);
-        progressBar = (ProgressBar) findViewById(R.id.progressBar_download);
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
         textView = (TextView) findViewById(R.id.textView);
+        swipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swiperefreshlayout);
+        updateLayoutProgress = (LinearLayout) findViewById(R.id.progressBar_download);
         initConfig(mWebView);
         //如果版本大于等于23就需要开启运行时权限
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -57,6 +64,20 @@ public class HybridBaseActivity extends AppCompatActivity implements OnDownloadL
             HybridAjaxService.checkVersion(this);
         }
         LogUtils.setShow(true);
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                Log.i(TAG, "onRefresh: 下拉刷新");
+                mWebView.reload();
+
+            }
+        });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mWebView.destroy();
     }
 
     /**
@@ -68,9 +89,24 @@ public class HybridBaseActivity extends AppCompatActivity implements OnDownloadL
         settings.setAllowFileAccess(true);
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        settings.setAppCachePath(webView.getContext().getCacheDir().getAbsolutePath());//设置页面缓存地址
+        settings.setAppCacheEnabled(true);//设置开启缓存
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);//缓存模式，只要本地有数据使用本地的数据
         settings.setUserAgentString(settings.getUserAgentString() + " hybrid_1.0.0 ");
         mWebViewClient = new HybridWebViewClient(webView);
+        mWebViewClient.setRefreshLayoutListener(new HybridWebViewClient.RefreshLayoutListener() {
+            @Override
+            public void failRefresh() {
+                // TODO: 2017/6/8 刷新失败 
+                swipeRefreshLayout.setRefreshing(false);
+            }
+
+            @Override
+            public void successRefresh() {
+                // TODO: 2017/6/8 刷新成功
+                swipeRefreshLayout.setRefreshing(false);
+            }
+        });
         webView.setWebViewClient(mWebViewClient);
         //注解约束的方式
 //        webView.addJavascriptInterface(new HybridJsInterface(), HybridConfig.JSInterface);
@@ -115,12 +151,14 @@ public class HybridBaseActivity extends AppCompatActivity implements OnDownloadL
 
     @Override
     public void onDownloadStart() {
+        updateLayoutProgress.setVisibility(View.VISIBLE);
         progressBar.setMax((int) (DownloadProgress.getInstance().getTotal()/1024));//设置进度
     }
 
     @Override
     public void onDownloadSuccess() {
         Toast.makeText(this, "增量更新包，更新操作执行完毕", Toast.LENGTH_SHORT).show();
+        updateLayoutProgress.setVisibility(View.GONE);
     }
 
     @Override
@@ -131,6 +169,7 @@ public class HybridBaseActivity extends AppCompatActivity implements OnDownloadL
 
     @Override
     public void onDownloadFailed() {
-
+        Toast.makeText(this, "无需更新", Toast.LENGTH_SHORT).show();
+        updateLayoutProgress.setVisibility(View.GONE);
     }
 }

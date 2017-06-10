@@ -22,6 +22,7 @@ public abstract class HybridAction {
 //                .registerTypeAdapter(HybridParamType.class, new HybridParamType.TypeDeserializer())
                 .create();
     }
+//    public abstract void onAction(WebView webView, String params, String jsmethod);
 
     public abstract void onAction(WebView webView, String params, String jsmethod);
 

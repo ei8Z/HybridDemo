@@ -19,6 +19,7 @@ public class MainActivity extends HybridWebViewActivity {
     protected void onResume() {
         super.onResume();
         loadUrl("http://192.168.0.106:8020/appkj/views/index.html");
+//        loadUrl("file:///android_asset/views/index.html");
     }
 }
 //当前文件：ggdetail.html解压缩完毕，解压路径：/storage/sdcard/Android/data/com.yiyicai.tvtrendapp.android_hybriddemo/files/hybrid_webapp/page/views/ggdetail.html

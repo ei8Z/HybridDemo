@@ -1,7 +1,11 @@
 package com.yiyicai.tvtrendapp.android_hybriddemo.core;
 
 import android.net.Uri;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.util.Log;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
@@ -25,51 +29,44 @@ public class HybridWebViewClient extends WebViewClient{
         this.mFilterHost = mFilterHost;
     }
 
-//    /**
-//     * 调用本地文件
-//     * @param view
-//     * @param url
-//     * @return
-//     */
-//    @Override
-//    public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
-//        //url解析，获取到地址
-//        Uri uri = Uri.parse(url);//转为Uri地址
-//        Log.i(TAG, "shouldInterceptRequest: 文件请求地址：" + uri+"   mFilterHost："+mFilterHost+"uriHost：" + uri.getHost()+" path："+uri.getPath());
-//        File storageDirectory = new File(FileUtil.getRootDir(view.getContext()), HybridConfig.FILE_HYBRID_DATA_PATH);
-//        File unZip=null;
-//        if (mFilterHost.equals(uri.getHost())){
-//            //host相同，且文件存在
-//            WebResourceResponse webResourceResponse = null;
-//            try {
-//                //调用到本地资源
-//                String mimeType = getMimeType(url);
-//                if(mimeType.equals("text/html")){
-////                    return webResourceResponse;
-//                    url = url.replace("appkj","page");
-//                }else {
-//                    url = url.replace("appkj","static");
-//                }
-//                uri = Uri.parse(url);
-//                 unZip= new File(storageDirectory, uri.getPath());//获取到对应频道的解压目录文件夹
-//
-//                webResourceResponse = new WebResourceResponse(mimeType, "UTF-8", new FileInputStream(unZip));
-//                Log.i(TAG, "shouldInterceptRequest: 文件已存在：" + unZip.getAbsolutePath() + "返回的类：" + webResourceResponse);
-//                return webResourceResponse;w
-//            } catch (IOException e) {
-//                Log.e(TAG, "shouldInterceptRequest:文件未找到"+unZip.getAbsolutePath());
-//                e.printStackTrace();
-//            }
-//        }
-//        //否则直接回调父类方法
-//        return super.shouldInterceptRequest(view, url);
-//    }
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    @Override
+    /**
+     * 内部做了版本判定，只有版本>=21才会执行,资源替换的方法
+     */
+    public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            //如果版本大于等于21
+            Log.i(TAG, "shouldInterceptRequest: 地址new：" + request.getUrl());
+            if (interceptUrlHandle(view, request.getUrl())) {
+                // TODO: 2017/6/9 如果是用于交互符合要求的请求
+            } else {
+                // TODO: 2017/6/9 不是用于交互符合要求的请求
+            }
+        }
+        return super.shouldInterceptRequest(view, request);
+    }
 
     @Override
-    public boolean shouldOverrideUrlLoading(final WebView view, String url) {
-        Uri parse = Uri.parse(url);
+    /**
+     * 内部做了版本判定，只有版本<21才会执行,资源替换的方法
+     */
+    public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+            //如果版本小于21
+            Log.i(TAG, "shouldInterceptRequest: 地址old：" + url);
+            if (interceptUrlHandle(view, Uri.parse(url))) {
+                // TODO: 2017/6/9 如果是用于交互符合要求的请求
+            } else {
+                // TODO: 2017/6/9 不是用于交互符合要求的请求
+            }
+        }
+        return super.shouldInterceptRequest(view, url);
+    }
+
+    public boolean interceptUrlHandle(final WebView view, Uri parse){
         String scheme = parse.getScheme();
-        LogUtils.show("HyBridWebViewClient_shouldOverrideUrlLoading","当前请求：" + url+ "当前Scheme:" + parse.getScheme(),"i");
+        LogUtils.show("HyBridWebViewClient_shouldOverrideUrlLoading","当前请求：" + parse+ "当前Scheme:" + parse.getScheme(),"i");
         if (HybridConfig.SCHEME.equals(scheme)||"medmedlinkerhybrid".equals(scheme)) {
             LogUtils.show("HyBridWebViewClient_shouldOverrideUrlLoading","Scheme条件满足" +scheme,"i");
             String host = parse.getHost();
@@ -84,7 +81,7 @@ public class HybridWebViewClient extends WebViewClient{
                         Toast.makeText(view.getContext(), "没有该接口", Toast.LENGTH_SHORT).show();
                     }
                 });
-                return super.shouldOverrideUrlLoading(view, url);
+                return false;
             }
             try {
                 hybridDispatcher(host, param, callback);
@@ -93,10 +90,23 @@ public class HybridWebViewClient extends WebViewClient{
             } catch (InstantiationException e) {
                 e.printStackTrace();
             }
-            return false;
+            return true;
         }
-        view.loadUrl(url);
         return false;
+    }
+
+    @Override
+    public void onPageFinished(WebView view, String url) {
+        super.onPageFinished(view, url);
+        refreshLayoutListener.successRefresh();
+
+    }
+
+
+    @Override
+    public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+        super.onReceivedError(view, errorCode, description, failingUrl);
+        refreshLayoutListener.failRefresh();
     }
 
     /**
@@ -145,5 +155,13 @@ public class HybridWebViewClient extends WebViewClient{
             }
         }
         return "text/plain";
+    }
+    public RefreshLayoutListener refreshLayoutListener;
+    public void setRefreshLayoutListener(RefreshLayoutListener refreshLayoutListener){
+        this.refreshLayoutListener = refreshLayoutListener;
+    }
+    public interface RefreshLayoutListener{
+        public void failRefresh();
+        public void successRefresh();
     }
 }
